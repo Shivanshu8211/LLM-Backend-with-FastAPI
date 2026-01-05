@@ -1,0 +1,22 @@
+# 1. Sensitive Information
+.env
+
+# 2. Python Virtual Environments
+venv/
+env/
+.venv/
+miniconda3/
+
+# 3. Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 4. Local App specific/Temp files
+utputFormat
+API-testing.py
+app/Readme.md  # Keep this if it's your main docs, ignore if it's personal notes
+
+# 5. OS Generated Files
+.DS_Store
+Thumbs.db
