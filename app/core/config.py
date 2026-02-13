@@ -1,23 +1,20 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
-    app_name: str
-    env: str
-    log_level: str = "INFO"
+    model_config = SettingsConfigDict(env_file='.env', extra='ignore', case_sensitive=False)
 
-    class Config:
-        env_file = ".env"
+    app_name: str = 'LLM Backend'
+    env: str = 'dev'
+    log_level: str = 'INFO'
+
+    llm_provider: str = 'gemini'
+    llm_model: str = 'gemini-2.5-flash'
+    gemini_api_key: str | None = None
+    llm_timeout_seconds: int = 60
+
+    worker_concurrency: int = 4
+    simulated_inference_delay_seconds: float = 0.0
+
 
 settings = Settings()
-
-"""
-What it does (The breakdown)
-
-    Look for a file: It looks for a file named .env in your project folder.
-
-    Read and Match: It looks for lines in that file that match the names app_name, env, and log_level.
-
-    Validate: It checks that the data is the right type. For example, if app_name is missing in your .env file, the program will crash immediately with a helpful error rather than failing later mysteriously.
-
-    Set Defaults: If log_level isn't found in the file, it automatically sets it to "INFO".
-"""

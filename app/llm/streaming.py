@@ -1,17 +1,9 @@
-import asyncio
 from typing import AsyncGenerator
+import threading
 
-from app.llm.gemini_client import stream_gemini_completion_sync
+from app.llm.inference import stream_completion as stream_completion_core
 
 
-async def stream_completion(prompt: str) -> AsyncGenerator[str, None]:
-    """
-    Async wrapper around sync Gemini streaming.
-    """
-    loop = asyncio.get_running_loop()
-
-    for token in stream_gemini_completion_sync(prompt):
-        # Yield control back to event loop between tokens
-        await asyncio.sleep(0)
+async def stream_completion(prompt: str, cancel_event: threading.Event | None = None) -> AsyncGenerator[str, None]:
+    async for token in stream_completion_core(prompt, cancel_event=cancel_event):
         yield token
-

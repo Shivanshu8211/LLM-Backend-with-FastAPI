@@ -1,19 +1,33 @@
-from fastapi import APIRouter, BackgroundTasks
-from app.background.tasks import create_job, long_running_task, JOB_RESULTS
-from datetime import datetime
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
+
+from app.background.tasks import job_store, job_worker
 
 router = APIRouter()
 
-@router.post("/submit")
-async def submit_job(background_tasks: BackgroundTasks):
-    job_id = create_job()
-    background_tasks.add_task(long_running_task, job_id)
+
+class SubmitJobRequest(BaseModel):
+    prompt: str = Field(..., min_length=1)
+
+
+@router.post('/submit')
+async def submit_job(payload: SubmitJobRequest):
+    job = await job_worker.submit(prompt=payload.prompt)
+    return {'job_id': job.id, 'status': job.status}
+
+
+@router.get('/{job_id}')
+async def get_job_status(job_id: str):
+    job = await job_store.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail='Job not found')
 
     return {
-        "job_id": job_id,
-        "status": "accepted"
+        'job_id': job.id,
+        'status': job.status,
+        'created_at': job.created_at,
+        'started_at': job.started_at,
+        'completed_at': job.completed_at,
+        'result': job.result,
+        'error': job.error,
     }
-
-@router.get("/{job_id}")
-async def get_job_status(job_id: str):
-    return JOB_RESULTS.get(job_id, {"status": "unknown job"})
