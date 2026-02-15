@@ -24,6 +24,7 @@ class SimulatedLLMProvider(BaseLLMProvider):
 class GeminiLLMProvider(BaseLLMProvider):
     def __init__(self) -> None:
         if not settings.gemini_api_key:
+            print("GEMINI_API_KEY is not set")
             raise ValueError('GEMINI_API_KEY is not set')
 
         try:

@@ -16,5 +16,14 @@ class Settings(BaseSettings):
     worker_concurrency: int = 4
     simulated_inference_delay_seconds: float = 0.0
 
+    # Phase 5 (RAG)
+    embedding_model: str = 'hashing-embed-v1'
+    embedding_dimension: int = 384
+    rag_default_top_k: int = 4
+    rag_chunk_size: int = 800
+    rag_chunk_overlap: int = 120
+    rag_data_dir: str = 'app/rag/data'
+    vector_store_path: str = 'app/rag/vector_store.json'
+
 
 settings = Settings()
