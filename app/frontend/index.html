@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAG Control Center</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="/ui/favicon.svg">
+  <link rel="stylesheet" href="/ui/styles.css">
+</head>
+<body>
+  <div class="background-grid" aria-hidden="true"></div>
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-badge">Phase 6</div>
+      <h1>RAG Control Center</h1>
+      <p>Operate retrieval, chain orchestration, and live streaming from one interface.</p>
+      <div class="hero-actions">
+        <button id="refreshHealthBtn" class="btn btn-secondary">Refresh Health</button>
+        <button id="indexDocsBtn" class="btn btn-primary">Reindex Docs</button>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>System Health</h2>
+          <span class="dot" id="healthDot"></span>
+        </div>
+        <div class="kv">
+          <div><span>Status</span><strong id="healthStatus">-</strong></div>
+          <div><span>Worker</span><strong id="workerStatus">-</strong></div>
+          <div><span>Queue</span><strong id="queueSize">-</strong></div>
+          <div><span>Chunks Indexed</span><strong id="indexedChunks">-</strong></div>
+          <div><span>Chain Mode</span><strong id="chainMode">-</strong></div>
+          <div><span>Tools</span><strong id="chainTools">-</strong></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>RAG Search</h2>
+        </div>
+        <div class="form">
+          <label for="searchPrompt">Query</label>
+          <textarea id="searchPrompt" rows="3" placeholder="What topics are covered in the RAG docs?"></textarea>
+          <label for="searchTopK">Top K</label>
+          <input id="searchTopK" type="number" min="1" max="20" value="4">
+          <button id="searchBtn" class="btn btn-primary">Search</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Chain Ask</h2>
+        </div>
+        <div class="form">
+          <label for="chainPrompt">Prompt</label>
+          <textarea id="chainPrompt" rows="4" placeholder="Explain FastAPI and calculate 12*7"></textarea>
+          <div class="row">
+            <div>
+              <label for="chainTopK">Top K</label>
+              <input id="chainTopK" type="number" min="1" max="20" value="4">
+            </div>
+            <div class="toggle-wrap">
+              <label><input id="useRag" type="checkbox" checked> Use RAG</label>
+              <label><input id="useTools" type="checkbox" checked> Use Tools</label>
+            </div>
+          </div>
+          <button id="chainAskBtn" class="btn btn-accent">Run Chain</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Streaming</h2>
+        </div>
+        <div class="form">
+          <label for="streamPrompt">Prompt</label>
+          <textarea id="streamPrompt" rows="3" placeholder="Stream a concise explanation of event loops"></textarea>
+          <button id="streamBtn" class="btn btn-secondary">Start Stream</button>
+          <button id="stopStreamBtn" class="btn btn-ghost">Stop</button>
+        </div>
+      </section>
+    </main>
+
+    <section class="panel output">
+      <div class="panel-head">
+        <h2>Output</h2>
+        <button id="clearOutputBtn" class="btn btn-ghost">Clear</button>
+      </div>
+      <pre id="outputBox">Ready.</pre>
+    </section>
+  </div>
+
+  <script src="/ui/app.js"></script>
+</body>
+</html>

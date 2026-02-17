@@ -1,35 +1,33 @@
-LLM Backend (Phase 5: RAG Core)
+LLM Backend (Phase 6: RAG + Tool Calling)
 
 Run server:
 `uvicorn app.main:app --reload`
 
+UI:
+- Open `http://127.0.0.1:8000/` for the integrated dashboard.
+- Static frontend assets are served under `/ui`.
+
 Set env vars (PowerShell):
 `$env:GEMINI_API_KEY = "YOUR-API-KEY"`
+`$env:CHAIN_MODE = "native"`  # or "langchain" (if langchain_core installed)
 
-Phase 2-4 endpoints:
-- `GET /health/`
-- `GET /demo/sync`
-- `GET /demo/async`
-- `GET /demo/metrics`
-- `POST /query/sync`
-- `POST /query/async`
-- `POST /jobs/submit`
-- `GET /jobs/{job_id}`
-- `GET /stream/stream?prompt=...`
-
-Phase 5 (RAG) endpoints:
+Phase 5 RAG endpoints:
 - `GET /rag/status`
-- `GET /rag/sources`
-- `POST /rag/index` with body: `{"rebuild": true}`
-- `POST /rag/search` with body: `{"query": "...", "top_k": 4}`
-- `POST /rag/ask-sync` with body: `{"prompt": "...", "top_k": 4}`
-- `POST /rag/ask-async` with body: `{"prompt": "...", "top_k": 4}`
-- `POST /rag/analyze` with body:
-  `{"top_k":4,"cases":[{"query":"What is FastAPI?","expected_terms":["fastapi","asgi"]}]}`
+- `POST /rag/index`
+- `POST /rag/search`
+- `POST /rag/ask-async`
+- `POST /rag/analyze`
 
-RAG workflow:
-1. Add source docs under `app/rag/data/`
-2. Build index via `POST /rag/index`
-3. Validate retrieval via `POST /rag/search`
-4. Ask grounded questions via `POST /rag/ask-async`
-5. Run retrieval analysis via `POST /rag/analyze`
+Phase 6 chain + tool-calling endpoints:
+- `GET /chains/status`
+- `POST /chains/ask-sync`
+- `POST /chains/ask-async`
+- `GET /chains/tools/logs`
+
+Sample chain request:
+`curl.exe -X POST "http://127.0.0.1:8000/chains/ask-async" -H "Content-Type: application/json" -d "{\"prompt\":\"What is FastAPI and compute 12*7\",\"top_k\":3,\"use_rag\":true,\"use_tools\":true}"`
+
+Phase 6 workflow:
+1. Index docs with `POST /rag/index`
+2. Ask through `/chains/ask-async` to use retrieval + tools + LLM
+3. Inspect tool invocation traces via `/chains/tools/logs`

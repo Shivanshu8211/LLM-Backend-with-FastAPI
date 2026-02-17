@@ -25,5 +25,10 @@ class Settings(BaseSettings):
     rag_data_dir: str = 'app/rag/data'
     vector_store_path: str = 'app/rag/vector_store.json'
 
+    # Phase 6 (chains and tool calling)
+    chain_mode: str = 'native'  # native | langchain
+    chain_max_context_chars: int = 3000
+    tool_max_invocations_per_request: int = 2
+
 
 settings = Settings()
