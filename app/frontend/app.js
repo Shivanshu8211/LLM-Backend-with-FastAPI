@@ -1,139 +1,180 @@
-const outputBox = document.getElementById("outputBox");
+const consoleBox = document.getElementById("consoleBox");
 const healthDot = document.getElementById("healthDot");
 
-const nodes = {
-  healthStatus: document.getElementById("healthStatus"),
-  workerStatus: document.getElementById("workerStatus"),
-  queueSize: document.getElementById("queueSize"),
-  indexedChunks: document.getElementById("indexedChunks"),
-  chainMode: document.getElementById("chainMode"),
-  chainTools: document.getElementById("chainTools"),
-};
+let activeStreamController = null;
 
-let streamController = null;
-
-function writeOutput(value) {
-  outputBox.textContent = value;
+function pretty(value) {
+  return JSON.stringify(value, null, 2);
 }
 
-function appendOutput(value) {
-  outputBox.textContent += value;
-  outputBox.scrollTop = outputBox.scrollHeight;
+function setConsole(value) {
+  consoleBox.textContent = value;
 }
 
-function pretty(data) {
-  return JSON.stringify(data, null, 2);
+function appendConsole(value) {
+  consoleBox.textContent += value;
+  consoleBox.scrollTop = consoleBox.scrollHeight;
+}
+
+function setText(id, value) {
+  document.getElementById(id).textContent = value;
 }
 
 async function api(path, options = {}) {
-  const res = await fetch(path, {
+  const response = await fetch(path, {
     headers: { "Content-Type": "application/json", ...(options.headers || {}) },
     ...options,
   });
-  const text = await res.text();
-  const data = text ? JSON.parse(text) : {};
-  if (!res.ok) {
-    throw new Error(`${res.status} ${res.statusText}\n${pretty(data)}`);
+  const raw = await response.text();
+  const data = raw ? JSON.parse(raw) : {};
+  if (!response.ok) {
+    throw new Error(`${response.status} ${response.statusText}\n${pretty(data)}`);
   }
   return data;
 }
 
-async function refreshHealth() {
+async function refreshOverview() {
   try {
-    const data = await api("/health/");
-    nodes.healthStatus.textContent = data.status || "-";
-    nodes.workerStatus.textContent = data.worker_running ? "Running" : "Stopped";
-    nodes.queueSize.textContent = String(data.queue_size ?? "-");
-    nodes.indexedChunks.textContent = String(data?.rag?.indexed_chunks ?? "-");
-    nodes.chainMode.textContent = data?.chains?.chain_mode || "-";
-    nodes.chainTools.textContent = (data?.chains?.tools || []).join(", ") || "-";
-    if (data.status === "ok") {
+    const [health, ragStatus, chainStatus, sources] = await Promise.all([
+      api("/health/"),
+      api("/rag/status"),
+      api("/chains/status"),
+      api("/rag/sources"),
+    ]);
+
+    setText("serviceStatus", health.status || "-");
+    setText("workerStatus", health.worker_running ? "Running" : "Stopped");
+    setText("queueSize", String(health.queue_size ?? "-"));
+    setText("indexedChunks", String(ragStatus.indexed_chunks ?? "-"));
+    setText("chainMode", chainStatus.chain_mode || "-");
+    setText("chainTools", (chainStatus.tools || []).join(", ") || "-");
+    setText("embeddingModel", ragStatus.embedding_model || "-");
+    setText("sourcesDetected", String(sources.files_detected ?? "-"));
+
+    if (health.status === "ok") {
       healthDot.classList.add("live");
     } else {
       healthDot.classList.remove("live");
     }
-  } catch (err) {
+  } catch (error) {
     healthDot.classList.remove("live");
-    writeOutput(`Health refresh failed:\n${err.message}`);
+    setConsole(`Overview refresh failed:\n${error.message}`);
   }
 }
 
-async function indexDocs() {
-  writeOutput("Reindexing documents...");
-  try {
-    const data = await api("/rag/index", {
-      method: "POST",
-      body: JSON.stringify({ rebuild: true }),
-    });
-    writeOutput(`Index complete:\n${pretty(data)}`);
-    refreshHealth();
-  } catch (err) {
-    writeOutput(`Index failed:\n${err.message}`);
-  }
+function getTopK() {
+  return Number(document.getElementById("ragTopK").value || 4);
 }
 
-async function runSearch() {
-  const query = document.getElementById("searchPrompt").value.trim();
-  const topK = Number(document.getElementById("searchTopK").value || 4);
-  if (!query) {
-    writeOutput("Enter a search query first.");
-    return;
-  }
-  writeOutput("Running retrieval search...");
-  try {
-    const data = await api("/rag/search", {
-      method: "POST",
-      body: JSON.stringify({ query, top_k: topK }),
-    });
-    writeOutput(pretty(data));
-  } catch (err) {
-    writeOutput(`Search failed:\n${err.message}`);
-  }
+function getChainTopK() {
+  return Number(document.getElementById("chainTopK").value || 4);
 }
 
-async function runChain() {
-  const prompt = document.getElementById("chainPrompt").value.trim();
-  const topK = Number(document.getElementById("chainTopK").value || 4);
-  const useRag = document.getElementById("useRag").checked;
-  const useTools = document.getElementById("useTools").checked;
+async function runQuerySync() {
+  const prompt = document.getElementById("p2Prompt").value.trim();
   if (!prompt) {
-    writeOutput("Enter a chain prompt first.");
+    setConsole("Enter a Phase 2 prompt.");
     return;
   }
-  writeOutput("Running chain async...");
+  setConsole("Running /query/sync...");
   try {
-    const data = await api("/chains/ask-async", {
-      method: "POST",
-      body: JSON.stringify({
-        prompt,
-        top_k: topK,
-        use_rag: useRag,
-        use_tools: useTools,
-      }),
-    });
-    writeOutput(pretty(data));
-  } catch (err) {
-    writeOutput(`Chain run failed:\n${err.message}`);
+    const data = await api("/query/sync", { method: "POST", body: JSON.stringify({ prompt }) });
+    setConsole(pretty(data));
+  } catch (error) {
+    setConsole(`Sync query failed:\n${error.message}`);
   }
 }
 
-async function runStream() {
+async function runQueryAsync() {
+  const prompt = document.getElementById("p2Prompt").value.trim();
+  if (!prompt) {
+    setConsole("Enter a Phase 2 prompt.");
+    return;
+  }
+  setConsole("Running /query/async...");
+  try {
+    const data = await api("/query/async", { method: "POST", body: JSON.stringify({ prompt }) });
+    setConsole(pretty(data));
+  } catch (error) {
+    setConsole(`Async query failed:\n${error.message}`);
+  }
+}
+
+async function compareQueryModes() {
+  const prompt = document.getElementById("p2Prompt").value.trim();
+  if (!prompt) {
+    setConsole("Enter a Phase 2 prompt.");
+    return;
+  }
+  setConsole("Comparing /query/sync and /query/async...");
+  try {
+    const sync = await api("/query/sync", { method: "POST", body: JSON.stringify({ prompt }) });
+    const asyncResult = await api("/query/async", { method: "POST", body: JSON.stringify({ prompt }) });
+    const syncSec = Number(sync.elapsed_seconds || 0);
+    const asyncSec = Number(asyncResult.elapsed_seconds || 0);
+    const report = {
+      sync,
+      async: asyncResult,
+      comparison: {
+        faster_mode: syncSec <= asyncSec ? "sync" : "async",
+        delta_seconds: Math.abs(syncSec - asyncSec).toFixed(3),
+      },
+    };
+    setConsole(pretty(report));
+  } catch (error) {
+    setConsole(`Compare failed:\n${error.message}`);
+  }
+}
+
+async function submitJob() {
+  const prompt = document.getElementById("jobPrompt").value.trim();
+  if (!prompt) {
+    setConsole("Enter a job prompt.");
+    return;
+  }
+  setConsole("Submitting background job...");
+  try {
+    const data = await api("/jobs/submit", { method: "POST", body: JSON.stringify({ prompt }) });
+    document.getElementById("jobIdInput").value = data.job_id || "";
+    setConsole(pretty(data));
+    refreshOverview();
+  } catch (error) {
+    setConsole(`Job submit failed:\n${error.message}`);
+  }
+}
+
+async function pollJob() {
+  const jobId = document.getElementById("jobIdInput").value.trim();
+  if (!jobId) {
+    setConsole("Enter or submit a job first.");
+    return;
+  }
+  setConsole(`Polling job ${jobId}...`);
+  try {
+    const data = await api(`/jobs/${encodeURIComponent(jobId)}`);
+    setConsole(pretty(data));
+    refreshOverview();
+  } catch (error) {
+    setConsole(`Job poll failed:\n${error.message}`);
+  }
+}
+
+async function startStream() {
   const prompt = document.getElementById("streamPrompt").value.trim();
   if (!prompt) {
-    writeOutput("Enter a streaming prompt first.");
+    setConsole("Enter a stream prompt.");
     return;
   }
-  if (streamController) {
-    streamController.abort();
+  if (activeStreamController) {
+    activeStreamController.abort();
   }
 
-  streamController = new AbortController();
-  writeOutput("Streaming response...\n");
+  activeStreamController = new AbortController();
+  setConsole("Streaming:\n");
 
   try {
     const res = await fetch(`/stream/stream?prompt=${encodeURIComponent(prompt)}`, {
-      method: "GET",
-      signal: streamController.signal,
+      signal: activeStreamController.signal,
     });
     if (!res.ok || !res.body) {
       throw new Error(`Stream unavailable (${res.status})`);
@@ -142,58 +183,175 @@ async function runStream() {
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
-
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
+      const packets = buffer.split("\n\n");
+      buffer = packets.pop() || "";
 
-      const chunks = buffer.split("\n\n");
-      buffer = chunks.pop() || "";
-
-      for (const chunk of chunks) {
-        const lines = chunk.split("\n");
-        let eventName = "message";
+      for (const packet of packets) {
+        const lines = packet.split("\n");
+        let eventType = "message";
         let dataLine = "";
         for (const line of lines) {
-          if (line.startsWith("event:")) eventName = line.slice(6).trim();
+          if (line.startsWith("event:")) eventType = line.slice(6).trim();
           if (line.startsWith("data:")) dataLine = line.slice(5).trim();
         }
-
-        if (eventName === "done") {
-          appendOutput("\n\n[STREAM DONE]");
+        if (eventType === "done") {
+          appendConsole("\n\n[DONE]");
           continue;
         }
-        if (eventName === "metrics") {
-          appendOutput(`\n\n[metrics] ${dataLine}`);
+        if (eventType === "metrics") {
+          appendConsole(`\n\n[metrics] ${dataLine}`);
           continue;
         }
-        appendOutput(dataLine);
+        appendConsole(dataLine);
       }
     }
-  } catch (err) {
-    if (err.name === "AbortError") {
-      appendOutput("\n\n[stream stopped]");
+  } catch (error) {
+    if (error.name === "AbortError") {
+      appendConsole("\n\n[stream stopped]");
     } else {
-      appendOutput(`\n\nStream failed:\n${err.message}`);
+      appendConsole(`\n\nStream failed:\n${error.message}`);
     }
   } finally {
-    streamController = null;
+    activeStreamController = null;
   }
 }
 
 function stopStream() {
-  if (streamController) {
-    streamController.abort();
+  if (activeStreamController) {
+    activeStreamController.abort();
   }
 }
 
-document.getElementById("refreshHealthBtn").addEventListener("click", refreshHealth);
-document.getElementById("indexDocsBtn").addEventListener("click", indexDocs);
-document.getElementById("searchBtn").addEventListener("click", runSearch);
-document.getElementById("chainAskBtn").addEventListener("click", runChain);
-document.getElementById("streamBtn").addEventListener("click", runStream);
-document.getElementById("stopStreamBtn").addEventListener("click", stopStream);
-document.getElementById("clearOutputBtn").addEventListener("click", () => writeOutput("Cleared."));
+async function ragIndex() {
+  setConsole("Running RAG index...");
+  try {
+    const data = await api("/rag/index", { method: "POST", body: JSON.stringify({ rebuild: true }) });
+    setConsole(pretty(data));
+    refreshOverview();
+  } catch (error) {
+    setConsole(`RAG index failed:\n${error.message}`);
+  }
+}
 
-refreshHealth();
+async function ragSearch() {
+  const query = document.getElementById("ragPrompt").value.trim();
+  if (!query) {
+    setConsole("Enter a RAG query.");
+    return;
+  }
+  setConsole("Running RAG search...");
+  try {
+    const data = await api("/rag/search", {
+      method: "POST",
+      body: JSON.stringify({ query, top_k: getTopK() }),
+    });
+    setConsole(pretty(data));
+  } catch (error) {
+    setConsole(`RAG search failed:\n${error.message}`);
+  }
+}
+
+async function ragAsk() {
+  const prompt = document.getElementById("ragPrompt").value.trim();
+  if (!prompt) {
+    setConsole("Enter a RAG prompt.");
+    return;
+  }
+  setConsole("Running RAG ask async...");
+  try {
+    const data = await api("/rag/ask-async", {
+      method: "POST",
+      body: JSON.stringify({ prompt, top_k: getTopK() }),
+    });
+    setConsole(pretty(data));
+  } catch (error) {
+    setConsole(`RAG ask failed:\n${error.message}`);
+  }
+}
+
+async function runChain() {
+  const prompt = document.getElementById("chainPrompt").value.trim();
+  if (!prompt) {
+    setConsole("Enter a chain prompt.");
+    return;
+  }
+  setConsole("Running chain...");
+  try {
+    const data = await api("/chains/ask-async", {
+      method: "POST",
+      body: JSON.stringify({
+        prompt,
+        top_k: getChainTopK(),
+        use_rag: document.getElementById("useRag").checked,
+        use_tools: document.getElementById("useTools").checked,
+      }),
+    });
+    setConsole(pretty(data));
+  } catch (error) {
+    setConsole(`Chain failed:\n${error.message}`);
+  }
+}
+
+async function fetchChainLogs() {
+  setConsole("Loading chain tool logs...");
+  try {
+    const data = await api("/chains/tools/logs?limit=50");
+    setConsole(pretty(data));
+  } catch (error) {
+    setConsole(`Tool logs failed:\n${error.message}`);
+  }
+}
+
+async function fetchRouteMetrics() {
+  setConsole("Loading route latency metrics...");
+  try {
+    const data = await api("/demo/metrics");
+    setConsole(pretty(data));
+  } catch (error) {
+    setConsole(`Metrics fetch failed:\n${error.message}`);
+  }
+}
+
+async function runDemoSync() {
+  setConsole("Running /demo/sync (about 5 seconds)...");
+  try {
+    const data = await api("/demo/sync");
+    setConsole(pretty(data));
+  } catch (error) {
+    setConsole(`Demo sync failed:\n${error.message}`);
+  }
+}
+
+async function runDemoAsync() {
+  setConsole("Running /demo/async (about 5 seconds)...");
+  try {
+    const data = await api("/demo/async");
+    setConsole(pretty(data));
+  } catch (error) {
+    setConsole(`Demo async failed:\n${error.message}`);
+  }
+}
+
+document.getElementById("refreshOverviewBtn").addEventListener("click", refreshOverview);
+document.getElementById("clearConsoleBtn").addEventListener("click", () => setConsole("Console cleared."));
+document.getElementById("querySyncBtn").addEventListener("click", runQuerySync);
+document.getElementById("queryAsyncBtn").addEventListener("click", runQueryAsync);
+document.getElementById("compareQueryBtn").addEventListener("click", compareQueryModes);
+document.getElementById("submitJobBtn").addEventListener("click", submitJob);
+document.getElementById("pollJobBtn").addEventListener("click", pollJob);
+document.getElementById("startStreamBtn").addEventListener("click", startStream);
+document.getElementById("stopStreamBtn").addEventListener("click", stopStream);
+document.getElementById("ragIndexBtn").addEventListener("click", ragIndex);
+document.getElementById("ragSearchBtn").addEventListener("click", ragSearch);
+document.getElementById("ragAskBtn").addEventListener("click", ragAsk);
+document.getElementById("chainAskBtn").addEventListener("click", runChain);
+document.getElementById("chainLogsBtn").addEventListener("click", fetchChainLogs);
+document.getElementById("routeMetricsBtn").addEventListener("click", fetchRouteMetrics);
+document.getElementById("demoSyncBtn").addEventListener("click", runDemoSync);
+document.getElementById("demoAsyncBtn").addEventListener("click", runDemoAsync);
+
+refreshOverview();

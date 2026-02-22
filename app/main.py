@@ -4,7 +4,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import chains, demo, health, jobs, query, rag, stream, ui
+from app.api.routes import cache, chains, demo, health, jobs, query, rag, stream, ui
 from app.background.tasks import job_worker
 from app.core.config import settings
 from app.core.logging import setup_logging
@@ -42,3 +42,4 @@ app.include_router(jobs.router, prefix="/jobs", tags=["jobs"])
 app.include_router(stream.router, prefix="/stream", tags=["stream"])
 app.include_router(rag.router, prefix="/rag", tags=["rag"])
 app.include_router(chains.router, prefix="/chains", tags=["chains"])
+app.include_router(cache.router, prefix="/cache", tags=["cache"])

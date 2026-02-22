@@ -3,96 +3,143 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RAG Control Center</title>
+  <title>LLM Backend Project Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="/ui/favicon.svg">
   <link rel="stylesheet" href="/ui/styles.css">
 </head>
 <body>
-  <div class="background-grid" aria-hidden="true"></div>
-  <div class="page-shell">
+  <div class="bg-layer" aria-hidden="true"></div>
+  <div class="shell">
     <header class="hero">
-      <div class="hero-badge">Phase 6</div>
-      <h1>RAG Control Center</h1>
-      <p>Operate retrieval, chain orchestration, and live streaming from one interface.</p>
+      <p class="eyebrow">8-Week Execution Plan</p>
+      <h1>High-Performance LLM Backend Dashboard</h1>
+      <p class="subtitle">Aligned to project phases: async APIs, concurrency, streaming, RAG, chains, and system metrics.</p>
       <div class="hero-actions">
-        <button id="refreshHealthBtn" class="btn btn-secondary">Refresh Health</button>
-        <button id="indexDocsBtn" class="btn btn-primary">Reindex Docs</button>
+        <button id="refreshOverviewBtn" class="btn btn-primary">Refresh Overview</button>
+        <button id="clearConsoleBtn" class="btn btn-ghost">Clear Console</button>
       </div>
     </header>
 
-    <main class="grid">
-      <section class="panel">
-        <div class="panel-head">
-          <h2>System Health</h2>
-          <span class="dot" id="healthDot"></span>
-        </div>
-        <div class="kv">
-          <div><span>Status</span><strong id="healthStatus">-</strong></div>
-          <div><span>Worker</span><strong id="workerStatus">-</strong></div>
-          <div><span>Queue</span><strong id="queueSize">-</strong></div>
-          <div><span>Chunks Indexed</span><strong id="indexedChunks">-</strong></div>
-          <div><span>Chain Mode</span><strong id="chainMode">-</strong></div>
-          <div><span>Tools</span><strong id="chainTools">-</strong></div>
-        </div>
-      </section>
+    <section class="panel overview">
+      <div class="panel-head">
+        <h2>Project Overview</h2>
+        <span class="status-dot" id="healthDot"></span>
+      </div>
+      <div class="kpi-grid">
+        <article><span>Service</span><strong id="serviceStatus">-</strong></article>
+        <article><span>Worker</span><strong id="workerStatus">-</strong></article>
+        <article><span>Queue</span><strong id="queueSize">-</strong></article>
+        <article><span>RAG Chunks</span><strong id="indexedChunks">-</strong></article>
+        <article><span>Chain Mode</span><strong id="chainMode">-</strong></article>
+        <article><span>Tools</span><strong id="chainTools">-</strong></article>
+        <article><span>Embedding Model</span><strong id="embeddingModel">-</strong></article>
+        <article><span>Data Sources</span><strong id="sourcesDetected">-</strong></article>
+      </div>
+    </section>
 
+    <main class="phase-grid">
       <section class="panel">
-        <div class="panel-head">
-          <h2>RAG Search</h2>
-        </div>
+        <div class="panel-head"><h2>Phase 2: Sync vs Async Query</h2></div>
         <div class="form">
-          <label for="searchPrompt">Query</label>
-          <textarea id="searchPrompt" rows="3" placeholder="What topics are covered in the RAG docs?"></textarea>
-          <label for="searchTopK">Top K</label>
-          <input id="searchTopK" type="number" min="1" max="20" value="4">
-          <button id="searchBtn" class="btn btn-primary">Search</button>
+          <label for="p2Prompt">Prompt</label>
+          <textarea id="p2Prompt" rows="3" placeholder="Explain why async I/O helps LLM APIs."></textarea>
+          <div class="row">
+            <button id="querySyncBtn" class="btn btn-secondary">Run Sync</button>
+            <button id="queryAsyncBtn" class="btn btn-secondary">Run Async</button>
+            <button id="compareQueryBtn" class="btn btn-accent">Compare Both</button>
+          </div>
         </div>
       </section>
 
       <section class="panel">
-        <div class="panel-head">
-          <h2>Chain Ask</h2>
+        <div class="panel-head"><h2>Phase 3: Background Jobs</h2></div>
+        <div class="form">
+          <label for="jobPrompt">Job Prompt</label>
+          <textarea id="jobPrompt" rows="3" placeholder="Submit a background inference job."></textarea>
+          <div class="row">
+            <button id="submitJobBtn" class="btn btn-secondary">Submit Job</button>
+            <button id="pollJobBtn" class="btn btn-ghost">Poll Job</button>
+          </div>
+          <label for="jobIdInput">Job ID</label>
+          <input id="jobIdInput" type="text" placeholder="Filled after submit">
         </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>Phase 4: Streaming</h2></div>
+        <div class="form">
+          <label for="streamPrompt">Prompt</label>
+          <textarea id="streamPrompt" rows="3" placeholder="Stream a response about event loops."></textarea>
+          <div class="row">
+            <button id="startStreamBtn" class="btn btn-secondary">Start Stream</button>
+            <button id="stopStreamBtn" class="btn btn-ghost">Stop Stream</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>Phase 5: RAG</h2></div>
+        <div class="form">
+          <label for="ragPrompt">Prompt / Query</label>
+          <textarea id="ragPrompt" rows="3" placeholder="What does the FastAPI doc mention about async?"></textarea>
+          <label for="ragTopK">Top K</label>
+          <input id="ragTopK" type="number" min="1" max="20" value="4">
+          <div class="row">
+            <button id="ragIndexBtn" class="btn btn-secondary">Index</button>
+            <button id="ragSearchBtn" class="btn btn-secondary">Search</button>
+            <button id="ragAskBtn" class="btn btn-accent">Ask Async</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>Phase 6: Chains & Tools</h2></div>
         <div class="form">
           <label for="chainPrompt">Prompt</label>
-          <textarea id="chainPrompt" rows="4" placeholder="Explain FastAPI and calculate 12*7"></textarea>
-          <div class="row">
+          <textarea id="chainPrompt" rows="3" placeholder="Explain FastAPI and calculate 12*7."></textarea>
+          <div class="row split">
             <div>
               <label for="chainTopK">Top K</label>
               <input id="chainTopK" type="number" min="1" max="20" value="4">
             </div>
-            <div class="toggle-wrap">
+            <div class="checks">
               <label><input id="useRag" type="checkbox" checked> Use RAG</label>
               <label><input id="useTools" type="checkbox" checked> Use Tools</label>
             </div>
           </div>
-          <button id="chainAskBtn" class="btn btn-accent">Run Chain</button>
+          <div class="row">
+            <button id="chainAskBtn" class="btn btn-accent">Run Chain</button>
+            <button id="chainLogsBtn" class="btn btn-ghost">Tool Logs</button>
+          </div>
         </div>
       </section>
 
       <section class="panel">
-        <div class="panel-head">
-          <h2>Streaming</h2>
-        </div>
+        <div class="panel-head"><h2>Phase 7: Semantic Cache</h2></div>
+        <p class="muted">
+          Cache endpoints are not exposed in current backend routes. This panel will activate when Redis semantic cache APIs are added.
+        </p>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>Phase 8: Observability</h2></div>
         <div class="form">
-          <label for="streamPrompt">Prompt</label>
-          <textarea id="streamPrompt" rows="3" placeholder="Stream a concise explanation of event loops"></textarea>
-          <button id="streamBtn" class="btn btn-secondary">Start Stream</button>
-          <button id="stopStreamBtn" class="btn btn-ghost">Stop</button>
+          <div class="row">
+            <button id="routeMetricsBtn" class="btn btn-secondary">Route Metrics</button>
+            <button id="demoSyncBtn" class="btn btn-ghost">Demo Sync (5s)</button>
+            <button id="demoAsyncBtn" class="btn btn-ghost">Demo Async (5s)</button>
+          </div>
         </div>
       </section>
-    </main>
 
-    <section class="panel output">
-      <div class="panel-head">
-        <h2>Output</h2>
-        <button id="clearOutputBtn" class="btn btn-ghost">Clear</button>
-      </div>
-      <pre id="outputBox">Ready.</pre>
-    </section>
+      <section class="panel console-panel">
+        <div class="panel-head"><h2>Console</h2></div>
+        <pre id="consoleBox">Dashboard ready.</pre>
+      </section>
+    </main>
   </div>
 
   <script src="/ui/app.js"></script>
