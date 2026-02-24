@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.background.tasks import job_store, job_worker
+from app.cache.state import get_cache
 from app.chains.state import get_orchestrator
 from app.core.config import settings
 from app.rag.state import get_retriever
@@ -13,6 +14,7 @@ async def health_check():
     stats = await job_store.stats()
     rag = get_retriever()
     chains = get_orchestrator()
+    cache = get_cache()
     return {
         'status': 'ok',
         'service': 'llm-backend',
@@ -28,4 +30,5 @@ async def health_check():
             'chain_mode': settings.chain_mode,
             'tools': chains.tool_names,
         },
+        'cache': cache.status(),
     }

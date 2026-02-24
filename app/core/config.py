@@ -30,5 +30,15 @@ class Settings(BaseSettings):
     chain_max_context_chars: int = 3000
     tool_max_invocations_per_request: int = 2
 
+    # Phase 7 (Redis semantic cache and optimization)
+    cache_enabled: bool = True
+    cache_backend: str = 'redis'  # redis | memory
+    redis_url: str = 'redis://127.0.0.1:6379/0'
+    cache_namespace: str = 'llm-backend'
+    cache_ttl_seconds: int = 3600
+    cache_max_entries: int = 2000
+    cache_similarity_threshold: float = 0.9
+    cache_semantic_scan_limit: int = 200
+
 
 settings = Settings()

@@ -1,4 +1,4 @@
-LLM Backend (Phase 6: RAG + Tool Calling)
+LLM Backend (Phase 7: Redis Semantic Cache + Optimization)
 
 Run server:
 `uvicorn app.main:app --reload`
@@ -10,6 +10,9 @@ UI:
 Set env vars (PowerShell):
 `$env:GEMINI_API_KEY = "YOUR-API-KEY"`
 `$env:CHAIN_MODE = "native"`  # or "langchain" (if langchain_core installed)
+`$env:CACHE_ENABLED = "true"`
+`$env:CACHE_BACKEND = "redis"`  # redis | memory
+`$env:REDIS_URL = "redis://127.0.0.1:6379/0"`
 
 Phase 5 RAG endpoints:
 - `GET /rag/status`
@@ -24,6 +27,11 @@ Phase 6 chain + tool-calling endpoints:
 - `POST /chains/ask-async`
 - `GET /chains/tools/logs`
 
+Phase 7 cache endpoints:
+- `GET /cache/status`
+- `POST /cache/invalidate`
+- `POST /cache/benchmark`
+
 Sample chain request:
 `curl.exe -X POST "http://127.0.0.1:8000/chains/ask-async" -H "Content-Type: application/json" -d "{\"prompt\":\"What is FastAPI and compute 12*7\",\"top_k\":3,\"use_rag\":true,\"use_tools\":true}"`
 
@@ -31,3 +39,9 @@ Phase 6 workflow:
 1. Index docs with `POST /rag/index`
 2. Ask through `/chains/ask-async` to use retrieval + tools + LLM
 3. Inspect tool invocation traces via `/chains/tools/logs`
+
+Phase 7 workflow:
+1. Check cache readiness via `GET /cache/status`
+2. Run normal requests (`/query/*`, `/rag/*`, `/chains/*`) to populate cache
+3. Inspect hit ratio and counters via `GET /cache/status`
+4. Compare latency with `POST /cache/benchmark`

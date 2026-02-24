@@ -4,6 +4,7 @@ import asyncio
 import threading
 from typing import AsyncGenerator
 
+from app.cache.state import get_cache
 from app.llm.gemini_client import build_llm_provider
 from app.llm.provider import BaseLLMProvider
 
@@ -20,12 +21,21 @@ def get_provider() -> BaseLLMProvider:
         return _provider
 
 
-def run_completion_sync(prompt: str) -> str:
-    return get_provider().complete(prompt)
+def run_completion_sync(prompt: str, use_cache: bool = True, allow_semantic: bool = True) -> str:
+    if use_cache:
+        cache = get_cache()
+        hit = cache.lookup(prompt=prompt, allow_semantic=allow_semantic)
+        if hit.hit and hit.output is not None:
+            return hit.output
+
+    output = get_provider().complete(prompt)
+    if use_cache:
+        get_cache().store(prompt=prompt, output=output)
+    return output
 
 
-async def run_completion(prompt: str) -> str:
-    return await asyncio.to_thread(run_completion_sync, prompt)
+async def run_completion(prompt: str, use_cache: bool = True, allow_semantic: bool = True) -> str:
+    return await asyncio.to_thread(run_completion_sync, prompt, use_cache, allow_semantic)
 
 
 async def stream_completion(prompt: str, cancel_event: threading.Event | None = None) -> AsyncGenerator[str, None]:
